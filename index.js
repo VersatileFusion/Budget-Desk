@@ -1,10 +1,11 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const app = express();
 const PORT = 3000;
 const XLSX = require("xlsx");
 const mongoose = require("mongoose");
+const basicAuth = require("express-basic-auth");
 
 // Row schema
 const rowSchema = new mongoose.Schema({
@@ -28,7 +29,8 @@ const islandSchema = new mongoose.Schema({
 const Island = mongoose.model("Island", islandSchema);
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
+mongoose
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected successfully."))
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -39,6 +41,14 @@ app.use(express.urlencoded({ extended: true })); // For parsing form data
 // Set view engine to render HTML
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
+
+app.use(
+  basicAuth({
+    users: { admin: "admin" },
+    challenge: true,
+    unauthorizedResponse: (req) => "Unauthorized",
+  })
+);
 
 function getAllSheetsData() {
   const workbook = XLSX.readFile("-5890780104330109183_63466543113236.xlsx");
