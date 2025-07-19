@@ -1,3 +1,10 @@
+<%
+function formatNumber(num) {
+  if (typeof num === 'number') num = num.toString();
+  if (!num) return '';
+  return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+%>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 
@@ -125,6 +132,11 @@
         }
         .nav-tabs .nav-item {
             white-space: nowrap;
+        }
+        .parent-row {
+            font-weight: 900 !important;
+            color: #1a237e;
+            background: #e3e6f0 !important;
         }
     </style>
 </head>
@@ -316,6 +328,15 @@
                                     }
                                     return codeStr.length / 2 - level;
                                     }
+                                    function isParentCode(code) {
+  if (!code) return false;
+  code = code.toString();
+  const specialParents = [
+    '190000','170000','160000','150000','140000','130000','120000','110000'
+  ];
+  if (specialParents.includes(code)) return true;
+  return /^([1-9])[0]+$/.test(code);
+}
                                     var editIndex = typeof editRowIndex !== 'undefined' ? editRowIndex : -1;
                                     %>
                                     <% tableData.forEach(function(row, rowIndex) { %>
@@ -329,7 +350,7 @@
                                                 <form method="POST" action="/edit-row">
                                                     <input type="hidden" name="island" value="<%= island %>">
                                                     <input type="hidden" name="sheet" value="<%= sheet %>">
-                                                    <tr>
+                                                    <tr class="<%= isParentCode(row.code) ? 'parent-row' : '' %>">
                                                         <td><input type="text" name="code" value="<%= row.code %>"
                                                                 class="form-control" required></td>
                                                         <td style="padding-right: <%= 20 * getCodeLevel(row.code) %>px;">
@@ -348,7 +369,7 @@
                                                     </tr>
                                                 </form>
                                                 <% } else { %>
-                                                    <tr>
+                                                    <tr class="<%= isParentCode(row.code) ? 'parent-row' : '' %>">
                                                         <td>
                                                             <%= row.code %>
                                                         </td>
@@ -356,11 +377,9 @@
                                                             <%= row.title %>
                                                         </td>
                                                         <% for (var i=0; i < 8; i++) { %>
-                                                            <% var value='' ; if (hasDirectChildren(row.code)) {
-                                                                value=getSumOfColumn(row.code, i); } else { value=row.values
-                                                                && row.values[i] ? row.values[i] : '' ; } %>
+                                                            <% var value = '' ; if (hasDirectChildren(row.code)) { value=getSumOfColumn(row.code, i); } else { value=row.values && row.values[i] ? row.values[i] : '' ; } %>
                                                                 <td>
-                                                                    <%= value %>
+                                                                    <%= formatNumber(value) %>
                                                                 </td>
                                                                 <% } %>
                                                                     <td>
@@ -451,6 +470,41 @@
                     // Re-bind after DOM changes
                     document.addEventListener('DOMContentLoaded', bindModalInputs);
                 </script>
+                <script>
+function formatNumberWithCommas(x) {
+    if (!x) return '';
+    x = x.replace(/,/g, '');
+    let parts = x.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join('.');
+}
+function unformatNumber(x) {
+    return x.replace(/,/g, '');
+}
+function bindNumberFormatting() {
+    document.querySelectorAll('.form-control').forEach(function(input) {
+        if (input.name === 'values[]' && !input.dataset.formatBound) {
+            input.dataset.formatBound = "true";
+            input.addEventListener('input', function(e) {
+                let cursor = input.selectionStart;
+                let raw = unformatNumber(input.value);
+                let formatted = formatNumberWithCommas(raw);
+                input.value = formatted;
+                input.setSelectionRange(formatted.length, formatted.length);
+            });
+            // On form submit, unformat all numbers
+            input.form && input.form.addEventListener('submit', function() {
+                document.querySelectorAll('.form-control[name="values[]"]').forEach(function(inp) {
+                    inp.value = unformatNumber(inp.value);
+                });
+            });
+        }
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    bindNumberFormatting();
+});
+</script>
             </div>
         </div>
     </div>
